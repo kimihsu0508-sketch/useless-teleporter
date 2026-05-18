@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Useless Internet Teleporter</title>
+  <meta name="description" content="點一下，隨機傳送到一個奇怪有趣的網站！" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #0a0a0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+    }
+
+    #starfield {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--d) ease-in-out infinite alternate;
+      opacity: 0;
+    }
+
+    @keyframes twinkle {
+      0%   { opacity: 0; transform: scale(1); }
+      100% { opacity: var(--max-op); transform: scale(1.6); }
+    }
+
+    #app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    #title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 8vw, 64px);
+      letter-spacing: 8px;
+      color: #ffffff;
+      text-shadow: 0 0 40px rgba(107, 247, 255, 0.7);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    #subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 3px;
+      margin-bottom: 50px;
+    }
+
+    #portal-ring {
+      width: clamp(220px, 40vw, 300px);
+      height: clamp(220px, 40vw, 300px);
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+
+    .ring-layer {
+      position: absolute;
+      border-radius: 50%;
+      border-style: solid;
+      border-color: transparent;
+    }
+
+    .ring1 {
+      inset: 0;
+      border-width: 3px;
+      border-top-color: #ff6bff;
+      border-right-color: #ff6bff;
+      animation: spin 3s linear infinite;
+    }
+
+    .ring2 {
+      inset: 10px;
+      border-width: 2px;
+      border-bottom-color: #6bf7ff;
+      border-left-color: #6bf7ff;
+      animation: spin 2.2s linear infinite reverse;
+    }
+
+    .ring3 {
+      inset: 22px;
+      border-width: 2px;
+      border-top-color: #ffe06b;
+      border-right-color: #ffe06b;
+      animation: spin 4.5s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #portal-core {
+      width: 76%;
+      height: 76%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #2a1a4e 0%, #0d0d1f 65%, #000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      z-index: 2;
+      transition: transform 0.2s ease;
+      text-decoration: none;
+    }
+
+    #portal-core:hover  { transform: scale(1.06); }
+    #portal-core:active { transform: scale(0.96); }
+
+    .nebula {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(22px);
+      animation: drift 6s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .n1 { width: 55%; height: 55%; background: rgba(180,80,255,0.38); top: -15%; left: -8%; animation-delay: 0s; }
+    .n2 { width: 45%; height: 45%; background: rgba(80,200,255,0.32); bottom: -8%; right: -4%; animation-delay: -2s; }
+    .n3 { width: 35%; height: 35%; background: rgba(255,180,50,0.22); top: 20%; right: -10%; animation-delay: -4s; }
+
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(8px,-8px) scale(1.18); }
+    }
+
+    .btn-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(18px, 4vw, 26px);
+      letter-spacing: 4px;
+      color: white;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 24px rgba(180,80,255,0.95);
+      line-height: 1.25;
+      pointer-events: none;
+    }
+
+    #destination-tag {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1.5px;
+      min-height: 20px;
+      transition: color 0.4s, text-shadow 0.4s;
+    }
+
+    #destination-tag.active {
+      color: #6bf7ff;
+      text-shadow: 0 0 12px rgba(107,247,255,0.6);
+    }
+
+    #counter {
+      font-size: 10px;
+      color: rgba(255,255,255,0.18);
+      letter-spacing: 1.5px;
+      margin-top: 18px;
+    }
+
+    #flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+      transition: opacity 0.06s ease;
+    }
+
+    @keyframes portal-pulse {
+      0%   { box-shadow: 0 0 0 0   rgba(180,80,255,0.5); }
+      70%  { box-shadow: 0 0 0 35px rgba(180,80,255,0); }
+      100% { box-shadow: 0 0 0 0   rgba(180,80,255,0); }
+    }
+    .pulsing { animation: portal-pulse 0.65s ease-out; }
+  </style>
+</head>
+<body>
+
+<div id="starfield"></div>
+<div id="flash-overlay"></div>
+
+<div id="app">
+  <div id="title">USELESS</div>
+  <div id="subtitle">INTERNET TELEPORTER &nbsp;·&nbsp; v3.0</div>
+
+  <div id="portal-ring">
+    <div class="ring-layer ring1"></div>
+    <div class="ring-layer ring2"></div>
+    <div class="ring-layer ring3"></div>
+    <a id="portal-core" href="#" target="_blank" rel="noopener noreferrer" aria-label="傳送到隨機奇怪網站">
+      <div class="nebula n1"></div>
+      <div class="nebula n2"></div>
+      <div class="nebula n3"></div>
+      <div class="btn-text">SEND<br>ME</div>
+    </a>
+  </div>
+
+  <div id="destination-tag">▸ DESTINATION: UNKNOWN ◂</div>
+  <div id="counter">TELEPORTATIONS: 0</div>
+</div>
+
+<script>
+  const sites = [
+    { url: "https://pointerpointer.com",              label: "Pointer Pointer" },
+    { url: "https://findtheinvisiblecow.com",          label: "Invisible Cow" },
+    { url: "https://cat-bounce.com",                   label: "Cat Bounce" },
+    { url: "https://eelslap.com",                      label: "Eel Slap!" },
+    { url: "https://omfgdogs.com",                     label: "OMFG Dogs" },
+    { url: "https://www.nyan.cat",                     label: "Nyan Cat" },
+    { url: "https://hackertyper.net",                  label: "Hacker Typer" },
+    { url: "https://zoomquilt.org",                    label: "Zoom Quilt" },
+    { url: "https://radio.garden",                     label: "Radio Garden" },
+    { url: "https://neal.fun/deep-sea/",               label: "The Deep Sea" },
+    { url: "https://neal.fun/absurd-trolley-problems/",label: "Absurd Trolley" },
+    { url: "https://neal.fun/universe-forecast/",      label: "Universe Forecast" },
+    { url: "https://thispersondoesnotexist.com",       label: "Person Doesn't Exist" },
+    { url: "https://www.mapcrunch.com",                label: "Map Crunch" },
+    { url: "https://www.koalastothemax.com",           label: "Koalas to the Max" },
+    { url: "https://www.staggeringbeauty.com",         label: "Staggering Beauty" },
+    { url: "https://www.bouncingdvdlogo.com",          label: "Bouncing DVD Logo" },
+    { url: "https://heeeeeeeey.com",                   label: "Heeeeeeeey!" },
+    { url: "https://www.fallingfalling.com",           label: "Falling Falling" },
+    { url: "https://clickclickclick.click",            label: "ClickClickClick" },
+    { url: "https://theuselessweb.com",                label: "The Useless Web" },
+    { url: "https://www.incredibox.com",               label: "Incredibox" },
+    { url: "https://www.rrrgggbbb.com",                label: "RRRGGGBBB" },
+    { url: "https://weirdorconfusing.com",             label: "Weird or Confusing" },
+  ];
+
+  let count = 0, lastIdx = -1;
+
+  /* ── starfield ── */
+  (function() {
+    const sf = document.getElementById('starfield');
+    for (let i = 0; i < 100; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const sz = (Math.random() * 2.2 + 0.4).toFixed(1);
+      s.style.cssText =
+        `width:${sz}px;height:${sz}px;` +
+        `left:${(Math.random()*100).toFixed(2)}%;` +
+        `top:${(Math.random()*100).toFixed(2)}%;` +
+        `--d:${(Math.random()*3+1.5).toFixed(1)}s;` +
+        `--max-op:${(Math.random()*0.55+0.15).toFixed(2)};` +
+        `animation-delay:${(Math.random()*5).toFixed(1)}s;`;
+      sf.appendChild(s);
+    }
+  })();
+
+  /* ── scramble animation ── */
+  function scramble(label) {
+    const el  = document.getElementById('destination-tag');
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*';
+    const target = `▸ ${label.toUpperCase()} ◂`;
+    let iter = 0;
+    el.classList.add('active');
+    const iv = setInterval(() => {
+      el.textContent = target.split('').map((c, i) => {
+        if (c === ' ' || c === '▸' || c === '◂') return c;
+        if (i < iter) return target[i];
+        return chars[Math.floor(Math.random() * chars.length)];
+      }).join('');
+      iter += 2;
+      if (iter >= target.length) { clearInterval(iv); el.textContent = target; }
+    }, 38);
+  }
+
+  /* ── teleport ── */
+  const core = document.getElementById('portal-core');
+
+  core.addEventListener('click', function() {
+    let idx;
+    do { idx = Math.floor(Math.random() * sites.length); } while (idx === lastIdx);
+    lastIdx = idx;
+    const site = sites[idx];
+
+    count++;
+    document.getElementById('counter').textContent = `TELEPORTATIONS: ${count}`;
+
+    core.classList.remove('pulsing');
+    void core.offsetWidth;
+    core.classList.add('pulsing');
+
+    const flash = document.getElementById('flash-overlay');
+    flash.style.opacity = '0.18';
+    setTimeout(() => { flash.style.opacity = '0'; }, 180);
+
+    document.getElementById('destination-tag').classList.remove('active');
+    document.getElementById('destination-tag').textContent = '▸ CALCULATING... ◂';
+    scramble(site.label);
+
+    core.href = site.url;
+  });
+</script>
+</body>
+</html>
